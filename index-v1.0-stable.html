@@ -1,0 +1,1676 @@
+<!--
+《选择之间》内容工作台 v1.0 Stable
+本地单文件版本
+功能：七类主题识别、内容素材生成、复制、导出 Markdown、草稿保存、重新生成
+说明：此文件为稳定备份，请勿直接在此版本上继续开发
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>《选择之间》内容工作台</title>
+  <style>
+    :root {
+      --paper: #f4f0e8;
+      --paper-soft: #faf8f2;
+      --ink: #1f1c19;
+      --muted: #6e675e;
+      --line: #d5cec1;
+      --line-dark: #8d8376;
+      --coal: #2a2723;
+      --white: #fffdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+      background:
+        linear-gradient(rgba(31, 28, 25, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31, 28, 25, 0.03) 1px, transparent 1px),
+        var(--paper);
+      background-size: 42px 42px;
+    }
+
+    button,
+    textarea,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .shell {
+      width: min(1480px, calc(100vw - 40px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 42px);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .tagline {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+      text-align: right;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 0.72fr 1.28fr;
+      gap: 24px;
+      padding: 26px 0 22px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.78);
+    }
+
+    .input-panel {
+      position: sticky;
+      top: 22px;
+      padding: 24px;
+    }
+
+    .section-kicker {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.28em;
+    }
+
+    .section-title {
+      margin: 0 0 18px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .intro {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    textarea {
+      width: 100%;
+      resize: vertical;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+      color: var(--ink);
+      outline: none;
+      line-height: 1.85;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    textarea:focus {
+      border-color: var(--coal);
+      background: var(--white);
+    }
+
+    #rawIdea {
+      min-height: 260px;
+      padding: 16px;
+      font-size: 16px;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 1px solid var(--coal);
+      background: var(--coal);
+      color: var(--white);
+      padding: 11px 16px;
+      font-size: 14px;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+    }
+
+    .btn:hover {
+      background: #4a443d;
+    }
+
+    .btn.secondary {
+      background: transparent;
+      color: var(--coal);
+    }
+
+    .btn.secondary:hover {
+      background: var(--coal);
+      color: var(--white);
+    }
+
+    .history {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .history-list {
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .history-item {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: transparent;
+      padding: 10px 12px;
+      color: var(--ink);
+    }
+
+    .history-item:hover {
+      border-color: var(--coal);
+      background: var(--paper-soft);
+    }
+
+    .history-item strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .result-panel {
+      padding: 26px;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-bottom: 18px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .empty-state {
+      min-height: 520px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed var(--line-dark);
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.9;
+      padding: 24px;
+    }
+
+    .result-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .result-block {
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+    }
+
+    .result-block:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .block-label {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.22em;
+    }
+
+    .block-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .block-heading .block-label {
+      margin: 0;
+    }
+
+    .copy-item {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      padding: 5px 9px;
+      font-size: 12px;
+      line-height: 1.2;
+      letter-spacing: 0.08em;
+    }
+
+    .copy-item:hover {
+      border-color: var(--coal);
+      color: var(--coal);
+      background: var(--paper-soft);
+    }
+
+    .block-body {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.9;
+      white-space: pre-wrap;
+    }
+
+    .big-title {
+      font-size: clamp(26px, 4vw, 48px);
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .option-box {
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+      padding: 16px;
+    }
+
+    .option-box strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--coal);
+      letter-spacing: 0.18em;
+    }
+
+    ol,
+    ul {
+      margin: 0;
+      padding-left: 1.4em;
+      line-height: 1.9;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .storyboard {
+      display: grid;
+      gap: 12px;
+    }
+
+    .shot {
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+      padding: 14px;
+    }
+
+    .shot h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .shot p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .bottom-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 18px 0 4px;
+      border-top: 1px solid var(--line);
+    }
+
+    .notice {
+      min-height: 24px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .input-panel {
+        position: static;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .tagline {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100vw - 24px, 1480px);
+        padding: 18px 0;
+      }
+
+      .topbar {
+        display: block;
+      }
+
+      .tagline {
+        margin-top: 8px;
+      }
+
+      .input-panel,
+      .result-panel {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <h1 class="brand">《选择之间》内容工作台</h1>
+      <p class="tagline">把一个粗粝的问题，整理成可发布、可分镜、可继续精修的内容素材。</p>
+    </header>
+
+    <section class="workspace">
+      <aside class="panel input-panel">
+        <p class="section-kicker">LOCAL DESK</p>
+        <h2 class="section-title">原始想法</h2>
+        <p class="intro">输入一个还没有成型的问题。它可以粗糙、矛盾、甚至只是一句话。工作台会用本地模板生成第一版素材，不上传任何内容。</p>
+        <textarea id="rawIdea" placeholder="例如：如果一个人能删除痛苦记忆，他还算完整的自己吗？"></textarea>
+
+        <div class="button-row">
+          <button class="btn" id="generateBtn" type="button">生成内容素材</button>
+          <button class="btn secondary" id="regenerateBtn" type="button">重新生成</button>
+          <button class="btn secondary" id="saveBtn" type="button">保存草稿</button>
+        </div>
+        <p class="notice" id="notice"></p>
+
+        <div class="history">
+          <p class="section-kicker">DRAFTS</p>
+          <h2 class="section-title">草稿历史</h2>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </aside>
+
+      <section class="panel result-panel">
+        <div class="top-actions">
+          <button class="btn secondary js-copy-markdown" type="button">一键复制 Markdown</button>
+          <button class="btn secondary js-export-markdown" type="button">导出 .md 文件</button>
+          <button class="btn secondary js-clear-current" type="button">清空当前内容</button>
+        </div>
+        <div id="resultRoot" class="empty-state">
+          <div>
+            <p class="section-kicker">OUTPUT</p>
+            <p>生成后，命题、分镜、旁白与 Markdown 草稿会出现在这里。</p>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <footer class="bottom-actions">
+      <button class="btn secondary js-copy-markdown" type="button">一键复制 Markdown</button>
+      <button class="btn secondary js-export-markdown" type="button">导出 .md 文件</button>
+      <button class="btn secondary js-clear-current" type="button">清空当前内容</button>
+    </footer>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "xuanze_content_workbench_drafts";
+    const LAST_KEY = "xuanze_content_workbench_last";
+
+    const state = {
+      rawIdea: "",
+      output: null,
+      variant: 0
+    };
+
+    const dom = {
+      rawIdea: document.getElementById("rawIdea"),
+      generateBtn: document.getElementById("generateBtn"),
+      regenerateBtn: document.getElementById("regenerateBtn"),
+      saveBtn: document.getElementById("saveBtn"),
+      resultRoot: document.getElementById("resultRoot"),
+      historyList: document.getElementById("historyList"),
+      notice: document.getElementById("notice")
+    };
+
+    const conflictRules = [
+      {
+        id: "ai",
+        label: "AI 技术",
+        titleSeeds: ["AI 会替代朋友吗？", "被 AI 理解之后", "真实关系还必要吗？", "机器也会懂我吗？", "算法里的陪伴", "人还不可替代吗？"],
+        keys: ["ai", "人工智能", "算法", "机器", "机器人", "技术", "数据", "模型", "虚拟", "数字人", "聊天机器人", "智能体"],
+        conflict: "算法理解 vs 真实相遇 / 效率陪伴 vs 人类关系",
+        aFrame: "仍然需要真实的人际关系，因为 AI 可以回应我，但不能真正与我共同承担现实。",
+        bFrame: "不一定需要真实的人际关系，因为如果 AI 能稳定理解、陪伴和支持我，人类关系未必不可替代。",
+        motifs: ["冷光屏幕", "聊天窗口", "深夜房间", "数据流", "玻璃反光", "孤独人影", "空椅子", "手机亮光", "虚拟头像", "两个人影被屏幕隔开"],
+        body: "当 AI 能记住你的习惯、理解你的情绪、永远耐心回应你时，真实的人际关系似乎第一次变得不再必要。人会误解，会沉默，会疲惫，也会在关系里带来消耗和不稳定。可是问题也随之出现：我们在关系里寻找的，到底是被准确理解，还是被另一个真实的人遇见？",
+        sharpQuestion: "如果一个 AI 永远秒回、永远理解你、永远不会厌烦你，那你还需要一个真实的人吗？",
+        reversal: "真正的问题不是 AI 像不像人，而是我们到底在关系里寻找什么。",
+        aReasons: [
+          "被理解不等于被真实相遇。AI 可以精准回应情绪，但它并不是带着自身处境来到你面前的另一个人。",
+          "人类关系包含不可控、误解和摩擦，也正因为这些不完美，它才不是单向服务。",
+          "AI 没有自己的生命处境，无法真正与你共同承担现实中的后果、责任和时间。",
+          "人需要的不只是回应，还有另一个自由主体的选择、靠近和留下。"
+        ],
+        bReasons: [
+          "人类关系常常带来消耗、误解和伤害，而 AI 至少能提供稳定、耐心、持续的回应。",
+          "如果陪伴和理解在功能上已经被满足，关系的形式是否还必须来自真实的人？",
+          "真实关系并不天然高于技术关系，它同样可能冷漠、敷衍，甚至让人更孤独。",
+          "对一些人来说，稳定的技术陪伴也许比不可预测的人际关系更能支撑日常生活。"
+        ],
+        script: [
+          "0-5 秒：如果一个 AI 永远秒回、永远理解你、永远不会厌烦你，那你还需要一个真实的人吗？",
+          "5-12 秒：A 方会说，需要。因为被回应不等于被真实地相遇。",
+          "12-20 秒：B 方会说，不一定。人类关系太不稳定，而 AI 至少不会轻易离开。",
+          "20-26 秒：真正的问题不是 AI 像不像人，而是我们到底在关系里寻找什么。",
+          "26-30 秒：如果理解可以被机器完成，那人类还剩下什么不可替代？"
+        ],
+        questions: [
+          "被 AI 理解，和被人理解，差别到底在哪里？",
+          "如果 AI 比人更稳定、更耐心、更少伤害人，我们为什么仍然执着于真实的人？",
+          "当陪伴可以被技术复制，人类关系剩下的不可替代性是什么？",
+          "如果一个关系只剩下功能上的满足，它还算关系吗？",
+          "我们需要的是回应，还是一个真正会拒绝、沉默、误解、也会靠近的人？"
+        ],
+        shots: [
+          {
+            title: "分镜 1：深夜秒回",
+            image: "深夜房间，四周全黑，手机屏幕亮着，AI 聊天框清晰显示“我明白你”，冷光落在床单和手指上，安静、克制、米白与深灰色调",
+            voice: "当一个 AI 永远秒回你，孤独好像第一次有了具体的出口。"
+          },
+          {
+            title: "分镜 2：被理解的脸",
+            image: "一个人坐在床边，屏幕冷光照在脸上，窗外全黑，房间里没有其他人，人物表情放松又疲惫，电影感近景",
+            voice: "它记得你的习惯，听懂你的情绪，也不会因为你说太多而厌烦。"
+          },
+          {
+            title: "分镜 3：没有呼吸声的陪伴",
+            image: "电脑聊天窗口不断向上滚动，文字温柔密集，但房间里只有一把椅子、一张桌子，没有另一个人的呼吸声，静物构图",
+            voice: "可是被准确回应，真的等于被另一个生命遇见吗？"
+          },
+          {
+            title: "分镜 4：人脸与虚拟头像",
+            image: "玻璃反光中，人的脸和一个柔和的虚拟头像重叠，屏幕边缘有细微数据流，冷光、灰白、低饱和",
+            voice: "AI 越像我们期待中的人，这个问题就越难回答。"
+          },
+          {
+            title: "分镜 5：空椅子与亮屏",
+            image: "一把空椅子正对着亮着的屏幕，屏幕上是温柔回复，现实里是沉默房间，桌面简洁，纸张和水杯静止",
+            voice: "它不会离开，但也没有真正来到这里。"
+          },
+          {
+            title: "分镜 6：屏幕隔开的人影",
+            image: "两个人影被一块发光屏幕隔开，屏幕上有像雨一样落下的数据流，人影站在光里却彼此模糊，安静、哲学感、留白",
+            voice: "如果理解可以被机器完成，人类还剩下什么不可替代？"
+          },
+          {
+            title: "分镜 7：温柔回复与现实沉默",
+            image: "手机屏幕上显示一段温柔回复，旁边是没有动过的杯子和暗下来的房间，现实空间显得空旷，冷光屏幕成为唯一光源",
+            voice: "最温柔的回应，也可能把人留在一个没有他者的房间里。"
+          },
+          {
+            title: "分镜 8：数据雨中的人",
+            image: "数据流像雨一样落下，一个孤独人影站在冷白光里，远处有模糊虚拟头像，画面极简、深灰背景、安静压迫感",
+            voice: "也许关系最难替代的，不是理解，而是另一个自由主体的存在。"
+          }
+        ],
+        narration: [
+          "AI 最可怕的地方，也许不是它不像人，而是它越来越像我们期待中的人。",
+          "它不打断，不厌烦，不离开。它记住你的偏好，接住你的情绪，用最合适的句子回应你。",
+          "可是一个永远顺从你的回应，真的能算作关系吗？",
+          "真实的人会误解，会沉默，会让你失望，也会在某个并不完美的时刻选择靠近。关系里最珍贵的，也许不是功能上的满足，而是另一个真实主体没有被你控制，却仍然愿意与你相遇。"
+        ].join("\n"),
+        xiaohongshuTitles: [
+          "如果 AI 永远懂你，你还需要真人关系吗？",
+          "一个很安静但很可怕的问题：AI 会替代朋友吗？",
+          "当 AI 比人更会安慰你，人还剩下什么？"
+        ],
+        bilibiliTitles: [
+          "【选择之间】如果 AI 比人类更懂你，你还需要真实关系吗？",
+          "当 AI 能提供陪伴，人类关系还不可替代吗？",
+          "AI 不会离开你，但它真的能遇见你吗？"
+        ]
+      },
+      {
+        label: "记忆痛苦",
+        titleSeeds: ["删除痛苦之后", "痛苦也是我吗？", "记忆可以被改写吗？", "遗忘是一种幸福吗？", "完整自我的代价", "如果不再痛苦"],
+        keys: ["记忆", "痛苦", "删除", "遗忘", "创伤"],
+        conflict: "真实与幸福 / 完整自我与减少痛苦",
+        aFrame: "允许删除或改写痛苦，因为生活质量比记忆完整更迫切。",
+        bFrame: "拒绝删除或改写痛苦，因为痛苦也是自我连续性的一部分。",
+        motifs: ["旧照片", "雨夜", "空房间", "模糊镜子", "被擦掉的铅笔痕", "冷色房间"],
+        sharpQuestion: "如果一段痛苦记忆可以被删除，你是在获得幸福，还是在失去自己？",
+        reversal: "最残忍的地方在于：留下痛苦会伤人，拿走痛苦也可能改写人。"
+      },
+      {
+        id: "intimacy",
+        label: "亲密关系",
+        reasonLimit: 5,
+        titleSeeds: ["爱会夺走自由吗？", "靠近，还是离开？", "亲密关系的代价", "被爱，还是被占有？", "爱的边界在哪里？", "别在爱里丢掉自己"],
+        keys: ["爱", "亲密", "关系", "背叛", "婚姻", "离开"],
+        conflict: "爱与自由 / 亲密承诺 vs 个体边界",
+        aFrame: "仍然选择爱情。因为真正的爱不是夺走自由，而是让人在被理解和牵挂中获得另一种展开。",
+        bFrame: "不选择这种爱情。因为如果一段关系必须以牺牲自我为代价，那它不是爱，而是一种温柔的占有。",
+        motifs: ["深夜聊天窗口", "两个人背对", "雨中车站", "餐桌杯子", "镜子前的戒指", "半开的门", "手腕勒痕", "反复亮起的手机", "窗框分割的人影"],
+        body: "如果爱情意味着靠近，也意味着让渡一部分自由，那么它就不再只是浪漫问题。被需要会让人感到确认，被牵挂也会让人感到温暖；可当一段关系开始要求你不断退让、解释、压缩自己，爱就可能从陪伴变成占有。真正困难的是：我们到底是在爱一个人，还是在用爱交换一种被束缚的安全感？",
+        sharpQuestion: "如果爱情会让你失去自由，你还会选择它吗？",
+        reversal: "真正困难的不是爱不爱，而是我们能不能在靠近一个人的同时，不丢掉自己。",
+        aReasons: [
+          "真正的亲密不是束缚，而是彼此承接。它让人知道自己不是孤身一人。",
+          "爱会带来牵挂，但牵挂不等于失去自我；好的关系应该让边界被看见，而不是被吞没。",
+          "人不是孤立存在的，自由也可以在关系中展开，而不是只能在独处里成立。",
+          "愿意为一个人改变，不一定是自我消失，也可能是把另一个人认真纳入生命。",
+          "有些自由让渡，是因为这个人值得被放进我的时间、计划和未来里。"
+        ],
+        bReasons: [
+          "如果爱要求不断牺牲自我，那它已经变成占有，只是披着温柔的外衣。",
+          "自由不是任性，而是保持自身边界的能力；没有边界的人很难真正去爱。",
+          "一段关系不该让人越来越不像自己。如果靠近意味着持续压缩，那就不是陪伴。",
+          "依恋如果以自尊为代价，最后会变成消耗，让人把痛苦误认成深情。",
+          "被需要不等于被爱，也可能只是被控制、被依赖，甚至被当作情绪出口。"
+        ],
+        questions: [
+          "爱情里的让渡，什么时候会变成失去自我？",
+          "真正的亲密，是让人更自由，还是让人更依赖？",
+          "如果一段关系让你越来越不像自己，它还值得继续吗？",
+          "爱一个人，是否必然意味着放弃一部分自由？",
+          "被需要和被爱之间，差别到底在哪里？"
+        ],
+        script: [
+          "0-5 秒：如果爱情会让你失去自由，你还会选择它吗？",
+          "5-12 秒：A 方说，会。因为真正的爱不是束缚，而是在牵挂中获得另一种展开。",
+          "12-20 秒：B 方说，不会。因为如果一段关系要靠牺牲自我维持，那它已经不是爱，而是占有。",
+          "20-26 秒：真正困难的不是爱不爱，而是我们能不能在靠近一个人的同时，不丢掉自己。",
+          "26-30 秒：如果被爱意味着失去自由，你还愿意被爱吗？"
+        ],
+        shots: [
+          {
+            title: "分镜 1：你在哪",
+            image: "深夜聊天窗口，手机屏幕冷光照亮桌面，最后一条消息停在“你在哪”，人物手指悬在输入框上方没有回复，房间安静，低饱和电影感",
+            voice: "有些牵挂一开始像爱，后来慢慢变成审问。"
+          },
+          {
+            title: "分镜 2：同床背对",
+            image: "两个人背对坐在同一张床边，中间隔着一盏昏暗台灯，床单微皱，空间亲近却冷，深灰与暖黄光对比，安静压抑",
+            voice: "亲密不一定意味着靠近，也可能是两个人在同一个房间里同时失语。"
+          },
+          {
+            title: "分镜 3：雨中车站",
+            image: "雨中车站，一个人撑伞回头，另一个人站在原地没有追上去，地面积水反光，远处车灯模糊，克制、留白、电影长镜头",
+            voice: "留下像是爱，离开也可能是在保护最后一点自己。"
+          },
+          {
+            title: "分镜 4：被推远的杯子",
+            image: "餐桌上两只杯子，一只靠近，一只被推远，桌面有未吃完的晚餐和折痕餐巾，人物不入镜，只留手部边缘，静物构图",
+            voice: "关系最细微的变化，常常发生在一句话没有说出口的时候。"
+          },
+          {
+            title: "分镜 5：镜子前的犹豫",
+            image: "镜子前，一个人摘下戒指或项链，神情犹豫，镜中倒影略微错位，浴室冷白光，画面安静、克制、带有告别感",
+            voice: "如果一段爱让你越来越不像自己，你还要继续证明它值得吗？"
+          },
+          {
+            title: "分镜 6：半开的门",
+            image: "房间里一扇半开的门，一边是暖光，一边是深蓝夜色，人物站在门缝之间，影子被切成两半，极简构图，哲学感",
+            voice: "爱和自由之间，最难的不是选择哪一个，而是不让其中一个吞掉另一个。"
+          },
+          {
+            title: "分镜 7：牵手的勒痕",
+            image: "两个人牵手的近景，其中一个人的手腕有轻微勒痕感，背景虚化，光线温柔但带一点不安，低饱和、细腻情绪",
+            voice: "有些温柔也会留下痕迹，只是它不总是被看见。"
+          },
+          {
+            title: "分镜 8：窗框里的人",
+            image: "窗边的人影被窗框分割，像被关系困住，手机屏幕反复亮起但人物没有立刻回复，窗外夜色很深，画面安静留白",
+            voice: "如果被爱意味着失去自由，你还愿意被爱吗？"
+          }
+        ],
+        narration: [
+          "爱最危险的地方，也许不是让人受伤，而是让人心甘情愿地缩小自己。",
+          "我们以为那是靠近，后来才发现，有些靠近会慢慢拿走一个人的边界。你开始解释每一次沉默，交出每一段时间，甚至把不像自己的样子也叫作爱。",
+          "可另一边也不能轻易否定：真正的亲密并不一定夺走自由。它也可能让人被看见、被承接，在牵挂中长出另一种展开。",
+          "所以问题不是爱情值不值得，而是这段爱有没有让你更完整。如果被爱意味着失去自己，那被爱本身也需要被重新审问。"
+        ].join("\n"),
+        xiaohongshuTitles: [
+          "爱会夺走自由吗？",
+          "如果爱情让你不像自己，你还要继续吗？",
+          "被爱，还是被占有？"
+        ],
+        bilibiliTitles: [
+          "【选择之间】如果爱情会让你失去自由，你还会选择它吗？",
+          "爱是靠近，还是一种温柔的束缚？",
+          "当亲密关系开始消耗自我，我们该离开吗？"
+        ]
+      },
+      {
+        id: "death",
+        label: "死亡意义",
+        titleSeeds: ["永生，是奖励还是惩罚？", "如果不会死", "死亡是否赋予意义？", "没有终点的人生", "生命为何珍贵？", "永生会稀释意义吗？"],
+        keys: ["死亡", "生命", "意义", "永生", "虚无", "存在", "终点"],
+        conflict: "终点赋予价值 vs 无限延展带来可能",
+        aFrame: "永生是一种惩罚。因为没有终点，选择会失去重量，时间会把一切珍贵慢慢磨平。",
+        bFrame: "永生不一定是惩罚。因为意义不只来自死亡，也可以来自持续创造、重新选择和不断理解世界。",
+        motifs: ["白色病房", "静止钟表", "海边落日", "空床", "白布", "无限走廊", "生日蜡烛", "空白日历", "停止的沙漏", "清晨墓园"],
+        body: "如果生命之所以珍贵，是因为它终将结束，那么永生就不只是奖励，也可能是一种漫长的耗损。没有最后一天，今天还会重要吗？没有失去的可能，拥有还会被珍惜吗？真正的问题不是我们想不想活得更久，而是：意义到底来自时间的有限，还是来自人在时间中不断创造的能力？",
+        sharpQuestion: "如果死亡让生命变得有意义，那永生到底是奖励，还是惩罚？",
+        reversal: "真正的问题不是人能不能永远活着，而是没有终点之后，人还会不会珍惜此刻。",
+        aReasons: [
+          "没有终点，选择会失去紧迫感。今天可以永远推迟，承诺也会慢慢变轻。",
+          "无限时间会稀释珍贵感。正因为很多东西不能重来，它们才被认真对待。",
+          "死亡让人意识到当下不可重复，也让爱、遗憾和告别拥有真实的重量。",
+          "如果一切都可以无限延后，人生可能变成一种没有高潮、没有句点的空洞延展。",
+          "永生可能不是自由，而是无法结束的疲惫：你必须一直活下去，连结束都不再属于你。"
+        ],
+        bReasons: [
+          "意义不一定来自死亡，也可以来自创造、理解和不断把自己交给新的事物。",
+          "有更多时间不代表一切都会变得廉价，时间也可能让人抵达更深的世界。",
+          "永生可以让人不断修正、学习、重新选择，而不是被一次人生的短暂限制住。",
+          "有限性不是意义的唯一来源。真正重要的，也许是人是否仍有值得投入的方向。",
+          "让人生空洞的不是时间太长，而是没有爱、没有创造，也没有任何愿意承担的东西。"
+        ],
+        questions: [
+          "如果你拥有无限时间，你还会认真对待今天吗？",
+          "生命的意义究竟来自终点，还是来自过程中的选择？",
+          "如果死亡消失，爱、承诺和遗憾还会一样珍贵吗？",
+          "永生是最大的自由，还是最大的囚禁？",
+          "我们害怕死亡，还是害怕没有死亡之后生命失去重量？"
+        ],
+        script: [
+          "0-5 秒：如果死亡让生命变得有意义，那永生到底是奖励，还是惩罚？",
+          "5-12 秒：A 方说，是惩罚。因为没有终点，今天就不再紧迫，选择也会慢慢失去重量。",
+          "12-20 秒：B 方说，不一定。意义不只来自死亡，也可以来自持续创造和不断理解世界。",
+          "20-26 秒：真正的问题不是人能不能永远活着，而是没有终点之后，人还会不会珍惜此刻。",
+          "26-30 秒：如果你拥有无限时间，你还会认真对待今天吗？"
+        ],
+        shots: [
+          {
+            title: "分镜 1：静止的终点",
+            image: "白色病房，墙上的钟表指针静止不动，床边没有人，窗外是过曝的白光，冷静、克制、低饱和，电影感构图",
+            voice: "死亡可怕，是因为它终止一切；也正因为它终止一切，时间才有了边界。"
+          },
+          {
+            title: "分镜 2：没有尽头的生命",
+            image: "无限延伸的走廊，尽头没有门，顶灯一盏盏重复亮着，一个人站在中央显得很小，深灰与米白色调，安静压迫感",
+            voice: "如果生命没有终点，活着会不会从礼物变成一条没有出口的走廊？"
+          },
+          {
+            title: "分镜 3：被磨平的珍贵",
+            image: "桌上插着很多根生日蜡烛，蜡烛密密麻麻却没有火焰，人物坐在桌前面无表情，背景昏暗，时间感强烈",
+            voice: "当生日多到数不清，庆祝本身也可能慢慢失去重量。"
+          },
+          {
+            title: "分镜 4：仍然可能的创造",
+            image: "海边落日，一个人站在潮水边，手里拿着未写完的纸页，远处天空开阔，温和光线，留白充足",
+            voice: "但也许意义不只来自结束，也来自人一次次重新开始。"
+          },
+          {
+            title: "分镜 5：停止的沙漏",
+            image: "近景，沙漏里的沙子停止流动，旁边日历一页页散落，最后几页变成空白，桌面安静，灰白纸质纹理",
+            voice: "如果一切都能延后，今天还会被认真选择吗？"
+          },
+          {
+            title: "分镜 6：灯火熄灭",
+            image: "一个人站在城市高处，看见远处灯火一盏盏熄灭，天空将亮未亮，人物背影孤独，远处有清晨雾气和模糊墓园轮廓",
+            voice: "我们害怕死亡，也害怕没有死亡之后，生命再也没有重量。"
+          },
+          {
+            title: "分镜 7：空床与风",
+            image: "空床、白布、被风吹动的窗帘，房间里没有人，阳光很淡，空气像停住一样，安静、克制、带有告别感",
+            voice: "失去让拥有变得刺痛，也让拥有不再只是背景。"
+          },
+          {
+            title: "分镜 8：清晨墓园",
+            image: "远处墓园和清晨雾气，石碑若隐若现，一束光落在湿润草地上，画面冷静、留白、无人物或只有极小背影",
+            voice: "终点不是答案，但它逼迫人把问题带回今天。"
+          }
+        ],
+        narration: [
+          "死亡之所以可怕，是因为它终止一切；可也正因为它终止一切，很多东西才终于有了重量。",
+          "永生听起来像奖赏，但如果明天永远都会来，今天还会被珍惜吗？如果所有遗憾都可以无限修补，承诺还会不会让人颤动？",
+          "可另一边也同样有力：意义不一定只能靠死亡来照亮。人也可以在漫长时间里持续创造、重新理解、一次次把自己交给新的世界。",
+          "真正的问题不是活得久一点好不好，而是当终点消失之后，我们是否还有能力认真地爱、认真地选择、认真地度过今天。"
+        ].join("\n"),
+        xiaohongshuTitles: [
+          "如果不会死，人生还会有意义吗？",
+          "永生到底是奖励，还是惩罚？",
+          "一个很安静但很可怕的问题：死亡是否赋予生命意义？"
+        ],
+        bilibiliTitles: [
+          "【选择之间】如果死亡让生命有意义，那永生是不是惩罚？",
+          "当死亡消失，生命还剩下什么重量？",
+          "永生是最大的自由，还是最大的囚禁？"
+        ]
+      },
+      {
+        id: "moral",
+        label: "道德救助",
+        reasonLimit: 5,
+        titleSeeds: ["救谁才是对的？", "情感与道德之间", "陌生人也值得救吗？", "善良的代价", "亲近的人怎么办？", "道德会伤人吗？"],
+        keys: ["道德", "牺牲", "救助", "责任", "善良", "伤害", "陌生人", "宠物"],
+        conflict: "普遍伦理 vs 特殊责任 / 抽象道德 vs 具体牵挂",
+        aFrame: "仍然救陌生人。因为生命价值不能只按亲疏远近排序，否则道德会退化成只保护“我的人”。",
+        bFrame: "优先保护亲近的人。因为爱与责任不是抽象原则，最亲近的人不该被我拿去替陌生人承担代价。",
+        motifs: ["火场门口", "十字路口", "急诊走廊", "人群剪影", "手电光", "雨夜街口", "两扇门", "被水渍浸湿的 A/B 纸"],
+        body: "如果救一个陌生人，会让你最亲近的人受到伤害，这个选择就不再只是善良与冷漠的区别。普遍伦理告诉我们，每一个生命都值得被救；可亲密关系也在提醒我们，有些人把自己的安全交给了你。真正困难的地方在于：我们是否有资格为了一个正确的原则，让最亲近的人替我们承受代价？",
+        sharpQuestion: "如果救一个陌生人，会伤害你最亲近的人，你还会救吗？",
+        reversal: "真正困难的不是救不救，而是当普遍伦理和私人责任冲突时，我们是否还有干净的答案。",
+        aReasons: [
+          "生命价值不能只按亲疏排序。陌生人的生命不该因为与我无关，就被放到更低的位置。",
+          "如果只救“我的人”，道德会缩小成私人偏爱，善良也会退回本能保护。",
+          "陌生人不是抽象数字，也是具体生命，也有自己的恐惧、关系和未完成的人生。",
+          "真正的伦理要求我们超越本能亲疏，否则公正只会停在熟人圈里。",
+          "如果人人都只保护亲近者，弱者和陌生人会被系统性放弃。"
+        ],
+        bReasons: [
+          "亲近的人不是道德实验的筹码，不能被我拿去证明自己的正确和善良。",
+          "爱意味着特殊责任，不是所有人都能被同等对待；有些托付只交给了我。",
+          "我没有资格要求亲近的人替陌生人承担代价，哪怕那个陌生人同样值得被救。",
+          "普遍伦理如果无视具体关系，也可能变成冷酷，把活生生的人变成原则的材料。",
+          "道德不应要求一个人背叛自己的牵挂，否则正确本身也会带着伤害。"
+        ],
+        questions: [
+          "生命是否应该完全平等，还是亲疏关系本身就有道德重量？",
+          "为了救一个陌生人，让亲近的人受伤，这算善良还是背叛？",
+          "道德要求我们公正，但人真的能不偏爱“自己的人”吗？",
+          "如果每个人都只救亲近的人，陌生人还会被谁救？",
+          "普遍伦理和私人责任冲突时，我们到底该听哪一个？"
+        ],
+        script: [
+          "0-5 秒：如果救一个陌生人，会伤害你最亲近的人，你还会救吗？",
+          "5-12 秒：A 方说，会救。因为生命不能只按亲疏远近排序，陌生人也不是一个可以被放弃的数字。",
+          "12-20 秒：B 方说，不会。因为最亲近的人不该成为我证明善良的代价。",
+          "20-26 秒：真正困难的不是救不救，而是当普遍伦理和私人责任冲突时，我们是否还有干净的答案。",
+          "26-30 秒：如果正确的选择会伤害你爱的人，你还愿意正确吗？"
+        ],
+        shots: [
+          {
+            title: "分镜 1：火场门口",
+            image: "火场门口，浓烟压低，两道方向相反的光从左右两侧照出，一个人物站在中间僵住，远处有模糊呼救声的视觉暗示，冷灰与橙红低饱和，电影感",
+            voice: "真正难的选择，不是善与恶，而是两个方向都有人在等你。"
+          },
+          {
+            title: "分镜 2：两只手",
+            image: "十字路口，一边是陌生人的呼救，一边是亲近者伸出的手，人物背影位于画面中央，地面湿冷，路灯昏暗，强烈方向冲突",
+            voice: "陌生人不是数字，亲近的人也不是可以被牺牲的背景。"
+          },
+          {
+            title: "分镜 3：急诊两扇门",
+            image: "急诊走廊，灯光惨白，两扇门同时亮着，一扇门后有陌生人模糊剪影，另一扇门后有亲近者的手贴在玻璃上，安静压迫感",
+            voice: "普遍伦理说每条生命都值得被救，私人责任说有些人把安全交给了你。"
+          },
+          {
+            title: "分镜 4：无法迈步的人",
+            image: "人群剪影中，一个人停在原地无法迈步，周围人影向不同方向流动，画面中心留白，深灰色调，克制、沉默",
+            voice: "当正确需要别人替你付代价，正确就不再干净。"
+          },
+          {
+            title: "分镜 5：手电光分叉",
+            image: "黑暗空间里，一束手电光照向前方后分成两个方向，两个人影分别站在不同尽头，一边清晰一边模糊，空气里有尘埃颗粒",
+            voice: "我们想成为公正的人，也想守住自己不能背叛的人。"
+          },
+          {
+            title: "分镜 6：应该与我爱的人",
+            image: "两扇门并排立在昏暗走廊，一扇门上写着“应该”，另一扇门上写着“我爱的人”，地面有水渍，门缝透出微弱光线，哲学感构图",
+            voice: "如果正确的选择会伤害你爱的人，你还愿意正确吗？"
+          },
+          {
+            title: "分镜 7：雨夜救护车",
+            image: "雨夜街口，救护车灯光红蓝闪烁，人物背影僵住，一只手抓住他的衣角，远处有人呼救，湿冷街面反光，电影感长镜头",
+            voice: "善良不是没有代价，只是有时我们不知道该让谁付。"
+          },
+          {
+            title: "分镜 8：被浸湿的选择",
+            image: "桌面上写着“A/B”的纸被水渍浸湿，字迹微微散开，旁边有一盏昏黄台灯和未接来电的手机，静物构图，克制压抑",
+            voice: "道德最难的部分，是它常常不给人一个不伤害任何人的答案。"
+          }
+        ],
+        narration: [
+          "道德最难的地方，不是让我们在善与恶之间选择，而是让我们在两个都不能轻易放弃的人之间选择。",
+          "陌生人不是数字，他同样有生命、有恐惧、有正在等待他的人。可亲近的人也不是筹码，他不该被你拿去证明一个正确的原则。",
+          "普遍伦理要求我们公正，私人责任要求我们守住托付。它们都不是错的，可它们一旦撞在一起，人的答案就开始变得不干净。",
+          "当正确需要代价时，问题才真正开始：这个代价，应该由谁来付？"
+        ].join("\n"),
+        xiaohongshuTitles: [
+          "如果救陌生人会伤害你爱的人，你还会救吗？",
+          "救谁才是对的？",
+          "善良可以让亲近的人付出代价吗？"
+        ],
+        bilibiliTitles: [
+          "【选择之间】如果救陌生人会伤害亲近的人，你还会救吗？",
+          "当普遍伦理撞上私人责任，我们该选哪边？",
+          "正确的选择如果伤害你爱的人，还算正确吗？"
+        ]
+      },
+      {
+        id: "growth",
+        label: "成长未来",
+        reasonLimit: 5,
+        titleSeeds: ["努力让人自由吗？", "成长的代价", "适应规则，还是成为自己？", "你是在成长吗？", "努力会驯化人吗？", "成为自己的路"],
+        keys: ["大学", "成长", "未来", "努力", "考试", "毕业", "选择专业", "适应规则", "更适应规则", "更自由", "成为自己", "成功", "上岸", "内卷", "规训", "驯化", "规则里", "工作", "前途", "改变命运"],
+        conflict: "努力 vs 驯化 / 适应规则 vs 成为自己",
+        aFrame: "仍然努力。因为即使规则不完美，努力至少能让人获得更多选择权，而不是完全被现实推着走。",
+        bFrame: "拒绝只为适应规则而努力。因为如果努力只是把人训练成更合格的工具，那它不一定通向自由，也可能只是更高级的驯化。",
+        motifs: ["深夜书桌", "地铁人群", "白色教室", "办公格子间", "跑道回头", "电梯人群", "证书与自画像", "规则告示牌", "城市灯光"],
+        body: "如果努力只是让你更适应规则，而不是更自由，那么努力就不再只是励志问题。它可能让你更熟练、更稳定、更符合期待，却也可能让你越来越习惯被评价、被筛选、被安排。真正困难的是：我们到底是在通过努力扩大自己，还是在把自己训练成一个更适合规则的人？",
+        sharpQuestion: "如果努力只是让你更适应规则，而不是更自由，你还要努力吗？",
+        reversal: "真正困难的不是要不要努力，而是我们努力之后，到底更接近自己，还是更适合被规则使用。",
+        aReasons: [
+          "规则不完美，但完全放弃努力只会让人更被动，更容易被现实推着走。",
+          "努力能换来选择权，哪怕一开始是在规则里，也可能先帮人争取一点空间。",
+          "适应规则不等于被规则吞掉，也可以是暂时借力，先活下来，再寻找出口。",
+          "人需要先拥有生存空间，才有资格谈自由；没有基础，很多理想只能停在想象里。",
+          "真正成熟的努力，是先理解规则，再决定是否超越规则，而不是一开始就被动认输。"
+        ],
+        bReasons: [
+          "如果努力只是在讨好评价体系，它可能不是成长，而是驯化。",
+          "一个人越来越适应规则，也可能越来越不像自己，甚至忘记自己原本想去哪里。",
+          "外部成功不一定等于内部自由，被认可也不一定意味着真的拥有方向。",
+          "被规则奖励的人，未必真的拥有自己的人生，也可能只是更熟练地完成了别人的期待。",
+          "如果努力的方向错了，越努力越远离自己，最后只会成为一个更合格却更陌生的人。"
+        ],
+        questions: [
+          "努力到底是在扩大选择，还是在适应筛选？",
+          "如果成功只是更好地符合规则，那它还值得追求吗？",
+          "一个人变得更优秀，是更自由了，还是更好管理了？",
+          "我们努力是为了成为自己，还是为了成为别人认可的人？",
+          "如果规则本身不公平，努力还算真正的出路吗？"
+        ],
+        script: [
+          "0-5 秒：如果努力只是让你更适应规则，而不是更自由，你还要努力吗？",
+          "5-12 秒：A 方说，要。因为规则不完美，但努力至少能让人获得更多选择权。",
+          "12-20 秒：B 方说，不一定。因为如果努力只是把人训练成更合格的工具，那它可能不是成长，而是驯化。",
+          "20-26 秒：真正困难的不是要不要努力，而是我们努力之后，到底更接近自己，还是更适合被规则使用。",
+          "26-30 秒：如果成功的代价是越来越不像自己，你还愿意成功吗？"
+        ],
+        shots: [
+          {
+            title: "分镜 1：深夜书桌",
+            image: "深夜书桌，台灯下堆满试卷、计划表和便利贴，纸页边缘卷起，人物伏案停笔，窗外全黑，米白与深灰色调，安静压迫感",
+            voice: "努力看起来总是正确，可它也可能把人训练得越来越适合被评价。"
+          },
+          {
+            title: "分镜 2：地铁人群",
+            image: "清晨地铁里一群人低头看手机，人物夹在人群中间，车厢冷白灯光，所有人的姿态相似，画面拥挤但沉默",
+            voice: "当所有人都朝同一个方向挤去，慢下来也会显得像失败。"
+          },
+          {
+            title: "分镜 3：排名教室",
+            image: "白色教室里，黑板上写着排名和分数，课桌整齐排列，一个人站在最后一排看着黑板，空间空旷、冷静、低饱和",
+            voice: "规则给出分数，也给出一个人被看见的方式。"
+          },
+          {
+            title: "分镜 4：格子间发呆",
+            image: "办公格子间，一个人面对电脑屏幕发呆，屏幕上是表格和待办事项，四周隔板整齐重复，冷灰色调，人物很小",
+            voice: "有时所谓成功，只是把自己放进了一个更体面的格子。"
+          },
+          {
+            title: "分镜 5：跑道回头",
+            image: "跑道上所有人朝同一个方向奔跑，只有一个人停下回头，远处操场灯光昏黄，人物背影清晰，运动感与静止感对比强烈",
+            voice: "真正困难的不是跑得慢，而是不知道自己为什么在跑。"
+          },
+          {
+            title: "分镜 6：相似的人",
+            image: "电梯门打开，里面站满穿相似衣服的人，表情平静，人物站在电梯外犹豫，门框像边界，画面克制、对称构图",
+            voice: "适应规则可能带来安全感，也可能让人越来越像同一种答案。"
+          },
+          {
+            title: "分镜 7：证书与自画像",
+            image: "一张证书放在桌上，旁边是一张被揉皱的自画像，台灯光落在证书上，自画像处在阴影里，静物构图，安静有张力",
+            voice: "如果被认可的代价是看不见自己，那认可本身也需要被追问。"
+          },
+          {
+            title: "分镜 8：未写完的计划",
+            image: "远处是亮着灯的城市，近处一个人拿着未写完的计划站在窗前，玻璃映出疲惫倒影，夜色深，画面留白充足",
+            voice: "努力应该把人带向更大的世界，而不是只带向更标准的自己。"
+          }
+        ],
+        narration: [
+          "努力最可怕的地方，也许不是它没有结果，而是它真的有结果。",
+          "它让你更熟练、更稳定、更符合期待，可你也可能在一次次被评价中，慢慢忘记自己原本想去哪里。",
+          "当然，放弃努力并不会自动带来自由。很多时候，人需要先在规则里争取一点空间，才有余力谈选择。",
+          "所以真正的问题不是要不要努力，而是努力之后，你是更接近自己，还是只是变成了一个更适合规则使用的人。"
+        ].join("\n"),
+        xiaohongshuTitles: [
+          "努力让你自由了吗？",
+          "你是在成长，还是被驯化？",
+          "如果努力只是适应规则，还要努力吗？"
+        ],
+        bilibiliTitles: [
+          "【选择之间】如果努力只是让你更适应规则，你还要努力吗？",
+          "努力到底让人自由，还是让人更适合规则？",
+          "当成功意味着被驯化，我们还该努力吗？"
+        ]
+      },
+      {
+        id: "freedom",
+        label: "自由安全",
+        reasonLimit: 5,
+        titleSeeds: ["安全值得牺牲自由吗？", "被保护，还是被控制？", "没有自由的安全", "温柔的牢笼", "谁来定义危险？", "自由的代价", "保护会变成控制吗？"],
+        keys: ["安全", "保护", "被保护", "控制", "管理", "监控", "风险", "危险", "秩序", "规则限制", "牢笼", "选择权", "自主权"],
+        conflict: "安全感 vs 自主权 / 被保护 vs 被管理",
+        aFrame: "愿意牺牲一部分自由。因为混乱和风险会伤害人，规则至少能保护脆弱的人不被失控的世界吞掉。",
+        bFrame: "不愿意牺牲核心自由。因为如果安全必须以失去选择权为代价，那保护就会慢慢变成控制。",
+        motifs: ["安检门", "透明玻璃房间", "城市摄像头", "围栏影子", "封闭房间", "电子锁", "为了你的安全", "规则告示牌", "被锁住的窗"],
+        body: "如果安全必须以自由为代价，那么保护就不再只是温柔的承诺。它可能意味着有人替你划定边界，替你过滤风险，替你决定什么是危险、什么是正确。安全会让人安心，可当一个人不再拥有选择、试错和承担后果的权利，这种安全也可能变成一座看不见的牢笼。真正困难的是：我们到底是在被保护，还是在被管理？",
+        sharpQuestion: "如果安全必须以自由为代价，你愿意被保护吗？",
+        reversal: "真正困难的不是安全重不重要，而是当别人替你定义危险时，你还剩下多少自己决定的空间。",
+        aReasons: [
+          "自由如果完全没有边界，也可能变成混乱和伤害；不是每个人都有能力独自承受失控的世界。",
+          "规则能保护脆弱的人免受更强者侵害，让弱者不必永远靠运气生活。",
+          "安全是人展开生活的基础。没有基本安全，很多选择只是纸面上的自由。",
+          "有些自由让渡，是为了换取共同生活的秩序，让人与人之间可以稳定地相处。",
+          "没有安全，很多人根本没有能力谈自由；他们首先需要不被伤害。"
+        ],
+        bReasons: [
+          "如果保护意味着失去选择权，它就接近控制，只是用了更温柔的名字。",
+          "人不能只被安全地保存，还要能自由地生活；活着不只是避免受伤。",
+          "风险是自由的一部分，完全消除风险也会消除试错、成长和承担的可能。",
+          "过度保护会让人失去承担后果的能力，最后只能继续依赖管理者。",
+          "以安全为名的管理，最容易让人慢慢习惯被限制，甚至忘记自己曾经可以选择。"
+        ],
+        questions: [
+          "如果一个人没有选择权，他还算真正安全吗？",
+          "保护和控制之间的界限在哪里？",
+          "为了避免风险，我们可以放弃多少自由？",
+          "没有自由的安全，是庇护还是牢笼？",
+          "人更需要不受伤害，还是需要自己决定人生？"
+        ],
+        script: [
+          "0-5 秒：如果安全必须以自由为代价，你愿意被保护吗？",
+          "5-12 秒：A 方说，愿意。因为没有秩序和边界，弱者最先被风险吞掉。",
+          "12-20 秒：B 方说，不愿意。因为如果保护意味着失去选择权，那安全就会慢慢变成控制。",
+          "20-26 秒：真正困难的不是安全重不重要，而是当别人替你定义危险时，你还剩下多少自己决定的空间。",
+          "26-30 秒：没有自由的安全，是保护，还是一座温柔的牢笼？"
+        ],
+        shots: [
+          {
+            title: "分镜 1：安检门前",
+            image: "安检门前，一个人停住脚步，身后是长长队伍，冷白灯光照在金属门框上，人物表情平静但犹豫，低饱和、克制、电影感",
+            voice: "安全有时像一道门，进去之后，风险少了，选择也少了。"
+          },
+          {
+            title: "分镜 2：透明房间",
+            image: "透明玻璃房间里，一个人看似安全地坐着，玻璃门没有把手，外面世界模糊而遥远，室内整洁安静，冷灰与米白色调",
+            voice: "被保护并不总是温柔，也可能是一种看不见的封闭。"
+          },
+          {
+            title: "分镜 3：摄像头广场",
+            image: "城市广场上到处是摄像头，人物低头走过，地面干净空旷，天空阴灰，摄像头的视线像无形线条落在人身上",
+            voice: "当危险被持续监控，自由也会被持续解释。"
+          },
+          {
+            title: "分镜 4：围栏影子",
+            image: "围栏投下长长影子，影子像牢笼一样落在人物身上，人物站在阳光和阴影交界处，构图极简，安静压迫感",
+            voice: "有些边界保护人，也慢慢塑造人能去哪里。"
+          },
+          {
+            title: "分镜 5：门外风雨",
+            image: "一扇门外是风雨和暗色街道，门内是安静但封闭的暖光房间，人物站在门口没有迈出，室内整齐到有些不真实",
+            voice: "外面有风险，里面有安稳；可安稳如果不能离开，也会变成牢笼。"
+          },
+          {
+            title: "分镜 6：电子锁",
+            image: "手腕上的电子锁微微发光，人物表情平静但压抑，背景是干净白色走廊，光线柔和却冰冷，近景细节清晰",
+            voice: "控制最容易被接受的时候，往往是它说自己正在保护你。"
+          },
+          {
+            title: "分镜 7：为了你的安全",
+            image: "白色走廊尽头有一扇门，门上写着“为了你的安全”，门缝透出微弱光，走廊空无一人，透视感强，冷静、哲学感",
+            voice: "当别人替你定义危险，你还剩下多少自己决定的空间？"
+          },
+          {
+            title: "分镜 8：被锁住的暖光",
+            image: "暖光房间里窗户被锁住，桌上摆着整齐的生活用品，床铺、杯子、书本都井然有序，窗外夜色深，画面安静却压抑",
+            voice: "没有自由的安全，是庇护，还是一座温柔的牢笼？"
+          }
+        ],
+        narration: [
+          "安全最危险的地方，也许不是它会伤害你，而是它常常以保护你的方式出现。",
+          "它替你挡住风险，也替你拿走选择。它让世界变得可控，却也可能让人慢慢失去试错、离开和承担后果的能力。",
+          "当然，完全没有边界的自由也可能伤害人。规则保护脆弱的人，让共同生活不至于被强者和混乱吞掉。",
+          "真正的问题是：保护到哪里为止，控制从哪里开始？等你终于不再受伤时，可能也已经不再拥有走出去的能力。"
+        ].join("\n"),
+        xiaohongshuTitles: [
+          "安全值得牺牲自由吗？",
+          "没有自由的安全，还是安全吗？",
+          "被保护，还是被控制？"
+        ],
+        bilibiliTitles: [
+          "【选择之间】如果安全必须以自由为代价，你愿意被保护吗？",
+          "没有自由的安全，是保护还是牢笼？",
+          "当保护变成控制，我们该如何选择？"
+        ]
+      }
+    ];
+
+    function setNotice(text) {
+      dom.notice.textContent = text || "";
+    }
+
+    function getDrafts() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function setDrafts(drafts) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts.slice(0, 20)));
+    }
+
+    function pickFrom(items, index) {
+      return items[index % items.length];
+    }
+
+    function rotate(items, offset) {
+      return items.map((_, index) => items[(index + offset) % items.length]);
+    }
+
+    function pickRule(input) {
+      const normalized = input.toLowerCase();
+      const aiRule = conflictRules.find(rule => rule.id === "ai");
+      if (aiRule && aiRule.keys.some(key => normalized.includes(key.toLowerCase()))) {
+        return aiRule;
+      }
+      const intimateRule = conflictRules.find(rule => rule.label === "亲密关系");
+      const intimatePriorityKeys = ["爱", "亲密", "背叛", "婚姻", "离开"];
+      if (intimateRule && intimatePriorityKeys.some(key => normalized.includes(key.toLowerCase()))) {
+        return intimateRule;
+      }
+      const growthRule = conflictRules.find(rule => rule.id === "growth");
+      const growthPriorityKeys = ["努力", "成长", "未来", "适应规则", "更适应规则", "更自由", "成为自己", "成功", "上岸", "内卷", "规训", "驯化", "规则里", "考试", "工作", "前途", "改变命运"];
+      if (growthRule && growthPriorityKeys.some(key => normalized.includes(key.toLowerCase()))) {
+        return growthRule;
+      }
+      const freedomRule = conflictRules.find(rule => rule.label === "自由安全");
+      const freedomPriorityKeys = ["安全", "保护", "被保护", "控制", "管理", "监控", "风险", "危险", "秩序", "规则限制", "牢笼", "选择权", "自主权"];
+      if (freedomRule && freedomPriorityKeys.some(key => normalized.includes(key.toLowerCase()))) {
+        return freedomRule;
+      }
+      return conflictRules.find(rule => rule.keys.some(key => normalized.includes(key.toLowerCase()))) || {
+        keys: [],
+        label: "通用",
+        titleSeeds: ["你会怎么选择？", "选择的代价", "真实与更好生活", "更好的生活？", "留下什么自己？"],
+        conflict: "真实自我与更好生活",
+        aFrame: "选择改变，因为人不必永远被过去和惯性定义。",
+        bFrame: "选择保留，因为真实的自我不能只按结果好坏来修剪。",
+        motifs: ["安静书桌", "两条并行道路", "镜子", "晨光中的纸张", "空白便签", "半开的窗"],
+        sharpQuestion: "如果更好的生活要求你改掉一部分自己，那还是你想要的生活吗？",
+        reversal: "改变可能是在长大，也可能是在把不能被市场喜欢的部分慢慢删掉。"
+      };
+    }
+
+    function cleanIdea(input) {
+      return input.trim().replace(/\s+/g, " ");
+    }
+
+    function shortenTitle(title) {
+      return title.length <= 24 ? title : `${title.slice(0, 23)}…`;
+    }
+
+    function textHash(text) {
+      return Array.from(text).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    }
+
+    function titleRelevanceScore(title, idea) {
+      const normalized = idea.toLowerCase();
+      const markers = [
+        "ai", "人工智能", "算法", "机器", "朋友", "真实", "关系", "理解", "陪伴",
+        "死亡", "生命", "意义", "永生", "终点", "痛苦", "记忆", "删除", "遗忘",
+        "爱", "爱情", "亲密", "自由", "边界", "占有", "救", "陌生人", "亲近",
+        "道德", "善良", "安全", "保护", "控制", "危险", "规则", "秩序",
+        "成长", "努力", "未来", "舒服", "大学"
+      ];
+      return markers.reduce((score, marker) => {
+        const lowerMarker = marker.toLowerCase();
+        return normalized.includes(lowerMarker) && title.toLowerCase().includes(lowerMarker) ? score + 1 : score;
+      }, 0);
+    }
+
+    function makeQuestionTitle(idea, rule, variant = 0) {
+      if (rule?.titleSeeds?.length) {
+        const seeds = [...new Set(rule.titleSeeds.map(shortenTitle))];
+        const scored = seeds.map(title => ({
+          title,
+          score: titleRelevanceScore(title, idea)
+        }));
+        const matched = scored
+          .filter(item => item.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .map(item => item.title);
+        if (matched.length > 0) {
+          const candidates = [...matched, ...seeds.filter(title => !matched.includes(title))];
+          return pickFrom(candidates, variant);
+        }
+        return pickFrom(seeds, textHash(idea) + variant);
+      }
+
+      const text = cleanIdea(idea).replace(/[。！？!?]$/g, "");
+      if (text.includes("还是")) return shortenTitle(text.split("还是")[0] + "，还是？");
+      if (text.includes("是否")) return shortenTitle(text.slice(text.indexOf("是否"), text.indexOf("是否") + 12) + "？");
+      return "选择的代价";
+    }
+
+    function generateContent(rawIdea, variant = 0) {
+      const idea = cleanIdea(rawIdea);
+      const rule = pickRule(idea);
+      const title = makeQuestionTitle(idea, rule, variant);
+      const motifs = rotate(rule.motifs, variant);
+      const body = rule.body || `当这个问题落到一个具体的人身上，它不再只是抽象判断。它要求我们在两个都不轻松的方向之间做出选择：一边试图给生活减轻重量，另一边坚持某些东西不能轻易交出去。真正被拉开的，是${rule.conflict}。`;
+      const optionA = rule.aFrame;
+      const optionB = rule.bFrame;
+      const reasonLimit = rule.reasonLimit || (rule.id === "ai" ? 4 : 3);
+
+      const aReasons = rotate(rule.aReasons || [
+        `A 方会认为，${rule.aFrame.replace(/。$/, "")}这不是软弱，而是承认人的承受力有边界。`,
+        "人的生活不是用来证明某种纯粹性的，如果一种选择能让人少受伤，它就值得被认真考虑。",
+        "真实并不总是天然高于幸福，很多时候，人需要先活下来，才有余力谈完整。",
+        "改变经验或选择结果，并不一定意味着逃避，也可能是一种主动整理人生的方式。"
+      ], variant).slice(0, reasonLimit);
+
+      const bReasons = rotate(rule.bReasons || [
+        `B 方会坚持，${rule.bFrame.replace(/。$/, "")}有些代价不是立刻显现，却会慢慢改变一个人。`,
+        "如果为了更好生活而不断修剪自己，最后留下的也许只是一个更顺滑、更陌生的人。",
+        "痛苦、迟疑和失败并不只是负担，它们也构成了人理解自己的证据。",
+        "一旦把真实交给结果评估，人就很容易把难以承受的部分都判定为无用。"
+      ], variant).slice(0, reasonLimit);
+
+      const questions = rotate(rule.questions || [
+        "如果一个选择能让人过得更好，它是否仍然需要接受真实性的审问？",
+        "我们是在保护自我，还是在保护某种不愿改变的惯性？",
+        "当两种选择都可能伤害人时，判断的边界应该由谁来划定？",
+        `在${rule.conflict}之间，哪一方更接近你不愿失去的东西？`
+      ], variant).slice(0, 3);
+
+      const script = rule.script || [
+        `0-5 秒：${rule.sharpQuestion}`,
+        `5-12 秒：A 方的诱惑是，它让人立刻少背一点重量：${rule.aFrame}`,
+        `12-20 秒：B 方的代价是，它要求你继续面对那些不舒服的部分：${rule.bFrame}`,
+        `20-26 秒：${rule.reversal}`,
+        `26-30 秒：如果必须失去一部分东西才能继续生活，你最不愿交出去的是什么？`
+      ];
+
+      const shots = rule.shots ? rotate(rule.shots, variant).slice(0, 6) : [
+        {
+          title: "分镜 1：问题出现",
+          image: `米白色纸面上写着问题，桌面安静，光线克制，画面母题：${pickFrom(motifs, 0)}`,
+          voice: `如果这个问题真的落到你身上，你会立刻知道它并不轻。`
+        },
+        {
+          title: "分镜 2：A 选项",
+          image: `一个人站在柔和光线里，画面留白多，象征减轻负担，画面母题：${pickFrom(motifs, 1)}`,
+          voice: `A 方相信，人有权选择一种更能生活下去的方式。`
+        },
+        {
+          title: "分镜 3：B 选项",
+          image: `人物保持沉默，冷静深灰色调，空间里有轻微错位感，画面母题：${pickFrom(motifs, 2)}`,
+          voice: `B 方担心，当痛苦被拿走，自我也被悄悄改写。`
+        },
+        {
+          title: "分镜 4：冲突拉开",
+          image: `画面一分为二，一侧明亮，一侧阴影，中央有细窄裂缝，画面母题：${pickFrom(motifs, 3)}`,
+          voice: `这不是简单的支持或反对，而是两种价值在互相拉扯。`
+        },
+        {
+          title: "分镜 5：追问",
+          image: `近景，一只手停在按钮或纸页上，没有按下，空气安静，画面母题：${pickFrom(motifs, 4)}`,
+          voice: `如果更好的结果需要牺牲某部分真实，你愿意付出多少？`
+        },
+        {
+          title: "分镜 6：留白结尾",
+          image: `空桌、未写完的句子、远处微弱光线，极简构图，画面母题：${pickFrom(motifs, 5)}`,
+          voice: `选择没有替你完成，它只是把你带回自己面前。`
+        }
+      ];
+
+      const narration = rule.narration || [
+        `有些问题之所以难，不是因为我们不知道答案，而是因为每个答案都会拿走一点东西。`,
+        `选择 A，像是在承认人需要被保护：${rule.aFrame}`,
+        `选择 B，像是在坚持人不能被轻易重写：${rule.bFrame}`,
+        `这道题真正问的也许不是你支持哪边，而是你认为一个人最不能失去的东西是什么。`
+      ].join("\n");
+
+      return {
+        rawIdea: idea,
+        topicLabel: rule.label,
+        title,
+        body,
+        optionA,
+        optionB,
+        conflict: rule.conflict,
+        aReasons,
+        bReasons,
+        questions,
+        script,
+        shots,
+        narration,
+        xiaohongshuTitles: rule.xiaohongshuTitles || [
+          `如果是你，会怎么选：${title}`,
+          `一个很安静但很难的问题：${rule.conflict}`,
+          `成年人最难的选择，往往不是对错`
+        ],
+        bilibiliTitles: rule.bilibiliTitles || [
+          `【选择之间】${title}`,
+          `当${rule.conflict}发生冲突，我们到底该选什么？`,
+          `一个30秒讲不完的问题：${title}`
+        ],
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function listToHtml(items) {
+      return `<ol>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function blockHeading(label, copyKey) {
+      const button = copyKey ? `<button class="copy-item" type="button" data-copy="${copyKey}">复制</button>` : "";
+      return `<div class="block-heading"><p class="block-label">${label}</p>${button}</div>`;
+    }
+
+    function renderOutput(output) {
+      if (!output) {
+        dom.resultRoot.className = "empty-state";
+        dom.resultRoot.innerHTML = `
+          <div>
+            <p class="section-kicker">OUTPUT</p>
+            <p>生成后，命题、分镜、旁白与 Markdown 草稿会出现在这里。</p>
+          </div>
+        `;
+        return;
+      }
+
+      dom.resultRoot.className = "result-grid";
+      dom.resultRoot.innerHTML = `
+        <section class="result-block">
+          ${blockHeading("今日命题标题", "title")}
+          <h2 class="block-body big-title">${escapeHtml(output.title)}</h2>
+        </section>
+        <section class="result-block">
+          <p class="block-label">识别主题</p>
+          <p class="block-body">${escapeHtml(output.topicLabel || "通用")}</p>
+        </section>
+        <section class="result-block">
+          ${blockHeading("命题正文", "body")}
+          <p class="block-body">${escapeHtml(output.body)}</p>
+        </section>
+        <section class="result-block two-col">
+          <div class="option-box">${blockHeading("A", "options")}<p class="block-body">${escapeHtml(output.optionA)}</p></div>
+          <div class="option-box">${blockHeading("B", "options")}<p class="block-body">${escapeHtml(output.optionB)}</p></div>
+        </section>
+        <section class="result-block">
+          <p class="block-label">核心价值冲突</p>
+          <p class="block-body">${escapeHtml(output.conflict)}</p>
+        </section>
+        <section class="result-block two-col">
+          <div>
+            <p class="block-label">A 方可能理由</p>
+            ${listToHtml(output.aReasons)}
+          </div>
+          <div>
+            <p class="block-label">B 方可能理由</p>
+            ${listToHtml(output.bReasons)}
+          </div>
+        </section>
+        <section class="result-block">
+          <p class="block-label">3 个延伸追问</p>
+          ${listToHtml(output.questions)}
+        </section>
+        <section class="result-block">
+          ${blockHeading("30 秒短视频脚本", "script")}
+          ${listToHtml(output.script)}
+        </section>
+        <section class="result-block">
+          ${blockHeading("6 个分镜与画面提示词", "shots")}
+          <div class="storyboard">
+            ${output.shots.map(shot => `
+              <article class="shot">
+                <h4>${escapeHtml(shot.title)}</h4>
+                <p><strong>画面：</strong>${escapeHtml(shot.image)}</p>
+                <p><strong>旁白：</strong>${escapeHtml(shot.voice)}</p>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+        <section class="result-block">
+          ${blockHeading("旁白文案", "narration")}
+          <p class="block-body">${escapeHtml(output.narration)}</p>
+        </section>
+        <section class="result-block">
+          ${blockHeading("发布标题", "publishTitles")}
+          <div class="two-col">
+            <div>
+              <p class="block-label">小红书标题</p>
+              ${listToHtml(output.xiaohongshuTitles)}
+            </div>
+            <div>
+              <p class="block-label">B站标题</p>
+              ${listToHtml(output.bilibiliTitles)}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function toMarkdown(output) {
+      if (!output) return "";
+
+      return `# ${output.title}
+
+识别主题：${output.topicLabel || "通用"}
+
+## 命题正文
+
+${output.body}
+
+## A / B 选项
+
+A：${output.optionA}
+
+B：${output.optionB}
+
+## 核心价值冲突
+
+${output.conflict}
+
+## A 方可能理由
+
+${output.aReasons.map((item, index) => `${index + 1}. ${item}`).join("\n")}
+
+## B 方可能理由
+
+${output.bReasons.map((item, index) => `${index + 1}. ${item}`).join("\n")}
+
+## 延伸追问
+
+${output.questions.map((item, index) => `${index + 1}. ${item}`).join("\n")}
+
+## 30 秒短视频脚本
+
+${output.script.map((item, index) => `${index + 1}. ${item}`).join("\n")}
+
+## 6 个分镜
+
+${output.shots.map((shot, index) => `${index + 1}. ${shot.title}
+   - 画面：${shot.image}
+   - 旁白：${shot.voice}`).join("\n\n")}
+
+## 画面提示词
+
+${output.shots.map((shot, index) => `${index + 1}. ${shot.image}`).join("\n")}
+
+## 旁白文案
+
+${output.narration}
+
+## 发布标题
+
+### 小红书
+
+${output.xiaohongshuTitles.map((item, index) => `${index + 1}. ${item}`).join("\n")}
+
+### B站
+
+${output.bilibiliTitles.map((item, index) => `${index + 1}. ${item}`).join("\n")}
+`;
+    }
+
+    function sectionText(key, output) {
+      if (!output) return "";
+      const sections = {
+        title: output.title,
+        body: output.body,
+        options: `A：${output.optionA}\n\nB：${output.optionB}`,
+        script: output.script.join("\n"),
+        shots: output.shots.map((shot, index) => `${index + 1}. ${shot.title}\n画面：${shot.image}\n旁白：${shot.voice}`).join("\n\n"),
+        narration: output.narration,
+        publishTitles: `小红书：\n${output.xiaohongshuTitles.map((item, index) => `${index + 1}. ${item}`).join("\n")}\n\nB站：\n${output.bilibiliTitles.map((item, index) => `${index + 1}. ${item}`).join("\n")}`
+      };
+      return sections[key] || "";
+    }
+
+    async function copyText(text, successMessage) {
+      if (!text) {
+        setNotice("请先生成内容素材。");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const helper = document.createElement("textarea");
+        helper.value = text;
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand("copy");
+        helper.remove();
+      }
+      setNotice(successMessage);
+    }
+
+    function saveCurrentDraft() {
+      const rawIdea = dom.rawIdea.value.trim();
+      if (!rawIdea) {
+        setNotice("先写下一个原始想法，再保存草稿。");
+        return;
+      }
+
+      if (!state.output || state.output.rawIdea !== cleanIdea(rawIdea)) {
+        state.variant = 0;
+        state.output = generateContent(rawIdea, state.variant);
+        renderOutput(state.output);
+      }
+
+      const drafts = getDrafts();
+      const draft = {
+        id: String(Date.now()),
+        rawIdea: cleanIdea(rawIdea),
+        output: state.output,
+        variant: state.variant,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      setDrafts([draft, ...drafts.filter(item => item.rawIdea !== draft.rawIdea)]);
+      localStorage.setItem(LAST_KEY, JSON.stringify(draft));
+      renderHistory();
+      setNotice("草稿已保存到本地浏览器。");
+    }
+
+    function renderHistory() {
+      const drafts = getDrafts();
+      if (drafts.length === 0) {
+        dom.historyList.innerHTML = `<p class="intro">还没有保存的草稿。</p>`;
+        return;
+      }
+
+      dom.historyList.innerHTML = drafts.map(draft => `
+        <button class="history-item" type="button" data-id="${draft.id}">
+          <strong>${escapeHtml(draft.output?.title || draft.rawIdea)}</strong>
+          <span>${new Date(draft.updatedAt || draft.createdAt).toLocaleString("zh-CN")}</span>
+        </button>
+      `).join("");
+
+      dom.historyList.querySelectorAll(".history-item").forEach(button => {
+        button.addEventListener("click", () => {
+          const draft = getDrafts().find(item => item.id === button.dataset.id);
+          if (!draft) return;
+          dom.rawIdea.value = draft.rawIdea;
+          state.rawIdea = draft.rawIdea;
+          state.output = draft.output;
+          state.variant = draft.variant || 0;
+          renderOutput(state.output);
+          setNotice("已恢复草稿。");
+        });
+      });
+    }
+
+    function downloadMarkdown() {
+      if (!state.output) {
+        setNotice("请先生成内容素材。");
+        return;
+      }
+
+      const blob = new Blob([toMarkdown(state.output)], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const safeName = state.output.title.replace(/[\\/:*?"<>|]/g, "").slice(0, 36) || "选择之间内容素材";
+      anchor.href = url;
+      anchor.download = `${safeName}.md`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setNotice("Markdown 文件已导出。");
+    }
+
+    async function copyMarkdown() {
+      if (!state.output) {
+        setNotice("请先生成内容素材。");
+        return;
+      }
+
+      await copyText(toMarkdown(state.output), "Markdown 已复制。");
+    }
+
+    function clearCurrent() {
+      dom.rawIdea.value = "";
+      state.rawIdea = "";
+      state.output = null;
+      state.variant = 0;
+      localStorage.removeItem(LAST_KEY);
+      localStorage.removeItem("xuanze_content_workbench_input");
+      renderOutput(null);
+      setNotice("当前内容已清空，本地历史草稿仍保留。");
+    }
+
+    function restoreLast() {
+      try {
+        const last = JSON.parse(localStorage.getItem(LAST_KEY) || "null");
+        if (!last) return;
+        dom.rawIdea.value = last.rawIdea || "";
+        state.rawIdea = last.rawIdea || "";
+        state.output = last.output || null;
+        state.variant = last.variant || 0;
+        renderOutput(state.output);
+      } catch {
+        localStorage.removeItem(LAST_KEY);
+      }
+    }
+
+    function generateFromInput({ regenerate = false } = {}) {
+      const rawIdea = dom.rawIdea.value.trim();
+      if (!rawIdea) {
+        setNotice("请先输入一个原始想法。");
+        return;
+      }
+
+      state.rawIdea = cleanIdea(rawIdea);
+      state.variant = regenerate ? state.variant + 1 : 0;
+      state.output = generateContent(state.rawIdea, state.variant);
+      localStorage.setItem(LAST_KEY, JSON.stringify({
+        id: "last",
+        rawIdea: state.rawIdea,
+        output: state.output,
+        variant: state.variant,
+        updatedAt: new Date().toISOString()
+      }));
+      renderOutput(state.output);
+      setNotice(regenerate ? "已基于当前输入重新生成一套素材。" : "内容素材已生成。你可以继续复制、导出或保存草稿。");
+    }
+
+    dom.generateBtn.addEventListener("click", () => generateFromInput());
+    dom.regenerateBtn.addEventListener("click", () => generateFromInput({ regenerate: true }));
+
+    dom.saveBtn.addEventListener("click", saveCurrentDraft);
+
+    document.querySelectorAll(".js-copy-markdown").forEach(button => {
+      button.addEventListener("click", copyMarkdown);
+    });
+    document.querySelectorAll(".js-export-markdown").forEach(button => {
+      button.addEventListener("click", downloadMarkdown);
+    });
+    document.querySelectorAll(".js-clear-current").forEach(button => {
+      button.addEventListener("click", clearCurrent);
+    });
+
+    dom.resultRoot.addEventListener("click", event => {
+      const button = event.target.closest("[data-copy]");
+      if (!button) return;
+      copyText(sectionText(button.dataset.copy, state.output), "这一项已复制。");
+    });
+
+    dom.rawIdea.addEventListener("input", () => {
+      localStorage.setItem("xuanze_content_workbench_input", dom.rawIdea.value);
+    });
+
+    const savedInput = localStorage.getItem("xuanze_content_workbench_input");
+    if (savedInput) dom.rawIdea.value = savedInput;
+    restoreLast();
+    renderHistory();
+  </script>
+</body>
+</html>
